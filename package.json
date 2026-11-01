@@ -1,0 +1,44 @@
+{
+  "name": "@vasilvestre/opencode-todo-enforcer",
+  "version": "1.0.0",
+  "description": "Resumes an idle OpenCode v2 session while its todos are still open.",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "todo",
+    "todowrite",
+    "idle"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "vasilvestre",
+    "url": "https://github.com/vasilvestre"
+  },
+  "homepage": "https://github.com/vasilvestre/opencode-todo-enforcer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vasilvestre/opencode-todo-enforcer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vasilvestre/opencode-todo-enforcer/issues"
+  },
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test index.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

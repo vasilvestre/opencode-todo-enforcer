@@ -29,7 +29,9 @@ The plugin is one file, `index.js`, with no build step and no dependency.
 - **No dependency.** The plugin imports nothing. Adding a package to a 5 kB
   plugin is a cost the user pays on every install.
 - **The todo source is the last completed `todowrite` tool call.** There is no
-  todo endpoint in OpenCode 2.2.5. Do not look for `api.session.todo`.
+  todo endpoint in OpenCode 2.2.5, and the plugin context has no
+  `session.message` object. Read the active context with
+  `ctx.session.context({ sessionID })`, which returns `{ data }`.
 - **The idle event is `{ sessionID, background }`.** `background` is a list of
   running items, each with a `kind` and a `sessionID`.
 - **Skip while `/goal` is active.** `/goal` stores its state under the storage

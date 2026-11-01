@@ -34,7 +34,8 @@ Requires OpenCode 2. The plugin has no dependency.
 
 On every idle event, the plugin:
 
-1. Reads the todos from the last completed `todowrite` tool call.
+1. Reads the todos from the last completed `todowrite` tool call in the
+   active context, through `session.context`.
 2. Does nothing when there are no todos, or when every todo is `completed` or
    `cancelled`.
 3. Otherwise resumes the session once with the remaining todos and an
@@ -84,7 +85,7 @@ npm test
 ```
 
 15 tests cover the resume, the cap, the stall check, the `/goal` skip, the
-background skip, and malformed message lists.
+background skip, and malformed context lists.
 
 ## License
 

@@ -15,9 +15,7 @@ async function harness({ messages = [], goal, options } = {}) {
         if (name === 'experimental.idle') idle = cb
         return { dispose: async () => {} }
       },
-      message: {
-        list: typeof messages === 'function' ? messages : async () => messages,
-      },
+      context: typeof messages === 'function' ? messages : async () => ({ data: messages }),
       synthetic: async (input) => {
         synthetic.push(input)
       },
@@ -145,7 +143,7 @@ test('a background item of another session does not block', async () => {
   assert.equal(h.synthetic.length, 1)
 })
 
-test('a malformed message list neither throws nor resumes', async () => {
+test('a malformed context list neither throws nor resumes', async () => {
   for (const messages of [
     null,
     'not a list',
@@ -162,9 +160,9 @@ test('a malformed message list neither throws nor resumes', async () => {
   }
 })
 
-test('reads todos from a { data } envelope', async () => {
+test('reads todos from the raw { data } envelope the client returns', async () => {
   const h = await harness({
-    messages: { data: [assistant([{ content: 'wrapped', status: 'pending' }])] },
+    messages: async () => ({ data: [assistant([{ content: 'wrapped', status: 'pending' }])] }),
   })
   await h.fire()
   assert.equal(h.synthetic.length, 1)
@@ -182,7 +180,7 @@ test('uses the last completed todowrite', async () => {
   assert.equal(h.synthetic.length, 0)
 })
 
-test('swallows a throwing message.list', async () => {
+test('swallows a throwing session.context', async () => {
   let idle
   const ctx = {
     session: {

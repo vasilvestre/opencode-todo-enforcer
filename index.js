@@ -22,7 +22,8 @@ function blockedByBackground(background, sessionID) {
   )
 }
 
-// message.list returns { data, cursor }. A message carries its parts in
+// session.context returns { data } holding the active context messages (all
+// messages after the last compaction). A message carries its parts in
 // `content`. Anything else means "no todos".
 function partsOf(messages) {
   const list = Array.isArray(messages) ? messages : messages?.data
@@ -99,7 +100,7 @@ export default {
         if (blockedByBackground(event.background, sessionID)) return
         if (await goalIsActive(ctx, sessionID)) return
 
-        const open = openTodos(todosFrom(await ctx.session.message.list({ sessionID })))
+        const open = openTodos(todosFrom(await ctx.session.context({ sessionID })))
         if (open.length === 0) return
 
         const count = resumes.get(sessionID) ?? 0

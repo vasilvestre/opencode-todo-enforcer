@@ -11,6 +11,7 @@
 
 const DEFAULT_MAX_RESUMES = 5
 const DONE = new Set(['completed', 'cancelled'])
+const STATE_KEY = 'resume:'
 
 // The idle event carries the running background items. /goal skips on the same
 // check: a subagent or an image still working for this session means the turn
@@ -79,7 +80,23 @@ async function goalIsActive(ctx, sessionID) {
   }
 }
 
-export { blockedByBackground, openTodos, resumeText, todosFrom }
+// The cap and the stall check outlive a restart: a server that restarts on
+// every idle would otherwise resume forever. A failed read means "no state",
+// which is the same as a fresh session.
+async function readState(ctx, sessionID) {
+  try {
+    const state = await ctx.storage.get(STATE_KEY + sessionID)
+    if (!state || typeof state !== 'object') return { count: 0, signature: null }
+    return {
+      count: Number.isInteger(state.count) ? state.count : 0,
+      signature: typeof state.signature === 'string' ? state.signature : null,
+    }
+  } catch {
+    return { count: 0, signature: null }
+  }
+}
+
+export { blockedByBackground, openTodos, readState, resumeText, todosFrom }
 
 export default {
   id: 'vasilvestre.opencode-todo-enforcer',
@@ -87,11 +104,6 @@ export default {
     const maxResumes = Number.isInteger(ctx.options?.maxResumes)
       ? ctx.options.maxResumes
       : DEFAULT_MAX_RESUMES
-
-    // Per-session counters live in memory: a restart forgets them, and a
-    // forgotten cap only means one more resume.
-    const resumes = new Map()
-    const lastOpen = new Map()
 
     await ctx.session.hook('experimental.idle', async (event) => {
       try {
@@ -103,16 +115,15 @@ export default {
         const open = openTodos(todosFrom(await ctx.session.context({ sessionID })))
         if (open.length === 0) return
 
-        const count = resumes.get(sessionID) ?? 0
-        if (count >= maxResumes) return
+        const state = await readState(ctx, sessionID)
+        if (state.count >= maxResumes) return
 
         // Same list as the previous resume means the agent made no progress.
         // /goal pauses on "Not making progress" for the same reason.
         const signature = JSON.stringify(open.map((t) => [t.content, t.status]))
-        if (lastOpen.get(sessionID) === signature) return
+        if (state.signature === signature) return
 
-        lastOpen.set(sessionID, signature)
-        resumes.set(sessionID, count + 1)
+        await ctx.storage.set(STATE_KEY + sessionID, { count: state.count + 1, signature })
 
         await ctx.session.synthetic({
           sessionID,

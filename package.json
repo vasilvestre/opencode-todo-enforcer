@@ -1,6 +1,6 @@
 {
   "name": "@vasilvestre/opencode-todo-enforcer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Resumes an idle OpenCode v2 session while its todos are still open.",
   "keywords": [
     "opencode",

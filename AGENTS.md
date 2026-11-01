@@ -17,7 +17,7 @@ The plugin is one file, `index.js`, with no build step and no dependency.
 | Path | Role |
 | --- | --- |
 | `index.js` | the plugin, and the only runtime file |
-| `index.test.mjs` | 15 tests, `node:test`, no dependency |
+| `index.test.mjs` | 18 tests, `node:test`, no dependency |
 | `.github/workflows/ci.yml` | tests on pull request and push |
 | `.github/workflows/release.yml` | publishes on version bump |
 | `README.md` | public usage, behaviour, option, known limits |
@@ -38,7 +38,9 @@ The plugin is one file, `index.js`, with no build step and no dependency.
   key `session:<id>`, with a `status` field. Read it inside `try`/`catch`: the
   key is an internal detail, so a miss means the plugin runs.
 - **Cap every resume.** A session gets `maxResumes` resumes (default 5), and no
-  resume when the remaining todos are identical to the previous one.
+  resume when the remaining todos are identical to the previous one. Keep both
+  the counter and the last remaining set in `ctx.storage` under
+  `resume:<sessionID>`: an in-memory counter resets on every server restart.
 
 ## Before you commit
 

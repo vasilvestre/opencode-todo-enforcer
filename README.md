@@ -63,7 +63,9 @@ session.
 | --- | --- | --- |
 | `maxResumes` | `5` | How many times the plugin may resume one session |
 
-The counters live in memory. A server restart forgets them.
+The counter and the last remaining set live in the plugin's own storage, so a
+server restart keeps both. A session that already used its resumes does not get
+more after a restart.
 
 ## Known limits
 
@@ -84,8 +86,8 @@ The counters live in memory. A server restart forgets them.
 npm test
 ```
 
-15 tests cover the resume, the cap, the stall check, the `/goal` skip, the
-background skip, and malformed context lists.
+18 tests cover the resume, the cap, the stall check, the `/goal` skip, the
+background skip, malformed context lists, and the state kept across a restart.
 
 ## License
 

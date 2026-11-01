@@ -4,10 +4,27 @@ import assert from 'node:assert/strict'
 import plugin from './index.js'
 
 // The plugin exports only its definition, so drive it through the hook it
-// registers. That is also what OpenCode does.
-async function harness({ messages = [], goal, options } = {}) {
+// registers. That is also what OpenCode does. `store` is shared across harness
+// instances to simulate a server restart, which keeps plugin storage.
+function memoryStorage(store = new Map()) {
+  return {
+    get: async (key) => store.get(key),
+    set: async (key, value) => {
+      store.set(key, value)
+    },
+    remove: async (key) => {
+      store.delete(key)
+    },
+    scan: async () => ({ entries: [] }),
+  }
+}
+
+async function harness({ messages = [], goal, options, store } = {}) {
   let idle
   const synthetic = []
+  const storage = memoryStorage(store)
+  const get = storage.get
+  storage.get = async (key) => (key === 'session:s1' ? goal : get(key))
   const ctx = {
     options,
     session: {
@@ -20,12 +37,7 @@ async function harness({ messages = [], goal, options } = {}) {
         synthetic.push(input)
       },
     },
-    storage: {
-      get: async (key) => {
-        if (key !== 'session:s1') return undefined
-        return goal
-      },
-    },
+    storage,
   }
   await plugin.setup(ctx)
   assert.equal(typeof idle, 'function', 'experimental.idle must be registered')
@@ -97,6 +109,50 @@ test('stops when the remaining todos did not change', async () => {
   await h.fire()
   await h.fire()
   assert.equal(h.synthetic.length, 1)
+})
+
+test('the cap survives a restart', async () => {
+  const store = new Map()
+  const first = await harness({ messages: changingTodos('step'), options: { maxResumes: 2 }, store })
+  for (let i = 0; i < 5; i++) await first.fire()
+  assert.equal(first.synthetic.length, 2)
+
+  const second = await harness({ messages: changingTodos('step'), options: { maxResumes: 2 }, store })
+  for (let i = 0; i < 5; i++) await second.fire()
+  assert.equal(second.synthetic.length, 0)
+})
+
+test('the stall check survives a restart', async () => {
+  const store = new Map()
+  const first = await harness({ messages: [assistant([{ content: 'same', status: 'pending' }])], store })
+  await first.fire()
+  assert.equal(first.synthetic.length, 1)
+
+  const second = await harness({ messages: [assistant([{ content: 'same', status: 'pending' }])], store })
+  await second.fire()
+  assert.equal(second.synthetic.length, 0)
+})
+
+test('a throwing storage read does not stop the resume', async () => {
+  let idle
+  const ctx = {
+    session: {
+      hook: async (name, cb) => {
+        if (name === 'experimental.idle') idle = cb
+        return { dispose: async () => {} }
+      },
+      context: async () => ({ data: [assistant([{ content: 'open', status: 'pending' }])] }),
+      synthetic: async () => {},
+    },
+    storage: {
+      get: async () => {
+        throw new Error('boom')
+      },
+      set: async () => {},
+    },
+  }
+  await plugin.setup(ctx)
+  await idle({ sessionID: 's1', background: [] })
 })
 
 test('resumes again once the remaining set changes', async () => {
@@ -197,9 +253,7 @@ test('swallows a throwing session.context', async () => {
         throw new Error('must not be called')
       },
     },
-    storage: {
-      get: async () => undefined,
-    },
+    storage: memoryStorage(),
   }
   await plugin.setup(ctx)
   await idle({ sessionID: 's1', background: [] })
